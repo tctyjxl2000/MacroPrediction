@@ -58,9 +58,9 @@ public class MacroBurstPred {
 	}
 	
 	public void dataLoad() throws Exception{
-		String data_file_name = "/home/zm/workspace/test/data_source/training_set_thre=19_randomized(J-M).csv";
-		//String data_file_name = "/home/zm/workspace/test/data_source/test.csv";
-//		String data_file_name = "/home/zm/workspace/test/data_source/training_set_CS_coverage_thre=8_randomized.csv";
+		String data_file_name = "./data_source/training_set_thre=19_randomized(J-M).csv";
+		//String data_file_name = "./data_source/test.csv";
+//		String data_file_name = "./data_source/training_set_CS_coverage_thre=8_randomized.csv";
 		CSVLoader loader = new CSVLoader();
 		loader.setSource(new File(data_file_name));
 		Instances data_raw = loader.getDataSet();
@@ -107,7 +107,7 @@ public class MacroBurstPred {
 	
 	public double[] one_pass_RF(Instances train, Instances test, boolean reweight, boolean resample) throws Exception{
 		double[] result = new double[19];
-		String file_name = "/home/zm/workspace/test/data_source/forest_example.dat";
+		String file_name = "./data_source/forest_example.dat";
 		FileWriter fw = new FileWriter(file_name,true);
 		if (reweight){
 			this.filter[1].setInputFormat(train);
@@ -158,7 +158,7 @@ public class MacroBurstPred {
 	}
 	
 	public double[] train_RF(int folds, int maxdepth, int features, int numTrees, boolean resample, boolean reweight, double resample_ratio) throws Exception{
-		String file_result = "/home/zm/workspace/test/data_source/result_compare.dat";
+		String file_result = "./data_source/result_compare.dat";
 		FileWriter fw = new FileWriter(file_result, true);
 		
 		Instances data_nominal = this.data_nominal;
@@ -377,7 +377,7 @@ public class MacroBurstPred {
 	}
 	
 	public double[] train_RF_clustered(int folds, int maxdepth, int features, int numTrees, boolean resample, boolean reweight, int numClusters) throws Exception{
-		String file_result = "/home/zm/workspace/test/data_source/result_compare.dat";
+		String file_result = "./data_source/result_compare.dat";
 		FileWriter fw = new FileWriter(file_result, true);
 		
 		Instances data_nominal = this.data_nominal;
@@ -456,7 +456,7 @@ public class MacroBurstPred {
 	}
 	
 	public double[] gridSearch_RF(int folds) throws Exception {
-		String file_result = "/home/zm/workspace/test/data_source/result_grid_search.dat";
+		String file_result = "./data_source/result_grid_search.dat";
 		int[] TreeNumber = {300,400,500};       // Set the searching range of number of trees
 		int[] FeatureNumber = {18,23,28,33};	// Set the searching range of number of features for generating a tree
 		int[] DepthNumber = {5,6,7};				// Set the maximum depth of the forest
@@ -522,7 +522,7 @@ public class MacroBurstPred {
 	}
 	
 	public int[] gridSearch_RF_clustered(int folds) throws Exception {
-		String file_result = "/home/zm/workspace/test/data_source/result_grid_search_cluster.dat";
+		String file_result = "./data_source/result_grid_search_cluster.dat";
 		int[] ClusterSize = {10};
 		int[] TreeNumber = {250};
 		int[] FeatureNumber = {23};
@@ -587,7 +587,7 @@ public class MacroBurstPred {
 	}
 	
 	public double[] gridSearch_RF_FSelected(int folds) throws Exception {
-		String file_result = "/home/zm/workspace/test/data_source/result_grid_search_FS.dat";
+		String file_result = "./data_source/result_grid_search_FS.dat";
 		this.type = "Feature_Selected";
 		double[] ClusterSize = { 0.01, 0.005};         // We keep the name here just to simplify the modification
 		int[] TreeNumber = {300};//{200,250,300,350};
@@ -676,7 +676,7 @@ public class MacroBurstPred {
 	}
 	
 	public void test_RF(int folds) throws Exception{
-		String file_name = "/home/zm/workspace/test/data_source/result_test.dat";
+		String file_name = "./data_source/result_test.dat";
 		double[][] result = new double[folds][19];
 		for (int ii = 0; ii<folds; ii++){
 			FileWriter fw = new FileWriter(file_name, true);
@@ -745,7 +745,7 @@ public class MacroBurstPred {
 	}
 	
 	public void test_RF_clustered(int folds) throws Exception{
-		String file_name = "/home/zm/workspace/test/data_source/result_test.dat";
+		String file_name = "./data_source/result_test.dat";
 		double[][] result = new double[folds][19];
 		for (int ii = 0; ii<folds; ii++){
 			FileWriter fw = new FileWriter(file_name, true);
@@ -798,7 +798,7 @@ public class MacroBurstPred {
 	}
 	
 	public void test_RF_FSelected(int folds) throws Exception{
-		String file_name = "/home/zm/workspace/test/data_source/result_test.dat";
+		String file_name = "./data_source/result_test.dat";
 		double[][] result = new double[folds][19];
 		for (int ii = 0; ii<folds; ii++){
 			FileWriter fw = new FileWriter(file_name, true);
@@ -862,16 +862,16 @@ public class MacroBurstPred {
 			this.setResampleRatio(config[3]); // Set the resampling ratio to the selected value. 
 			double[] result_fold = this.one_pass_RF(train, test, reweight, resample);
 			
-			String file_name_classifier = "/home/zm/workspace/test/data_source/forest_example.dat";
+			String file_name_classifier = "./data_source/forest_example.dat";
 			FileWriter fw_rf = new FileWriter(file_name_classifier,false);
 			fw_rf.write(this.classifier.toString());
 			fw_rf.close();
 			RandomForestTrack rft= new RandomForestTrack();
-			rft.loadtrees("/home/zm/workspace/test/data_source/forest_example.dat");
+			rft.loadtrees("./data_source/forest_example.dat");
 //			rft.genReason(test);
 			
 			if (time_att!=null){
-				String file_name_instresult = "/home/zm/workspace/test/data_source/instance_result.dat";
+				String file_name_instresult = "./data_source/instance_result.dat";
 				FileWriter fw_ir = new FileWriter(file_name_instresult,false);
 	//			String index_of_time = test.attribute(test.numAttributes()-2).name();
 	//			System.out.println(index_of_time);

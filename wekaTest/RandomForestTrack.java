@@ -142,7 +142,7 @@ public class RandomForestTrack {
 	public static void main(String[] args) throws Exception {
 		// TODO Auto-generated method stub
 		RandomForestTrack rft= new RandomForestTrack();
-		rft.loadtrees("/home/zm/workspace/test/data_source/forest_example.dat");
+		rft.loadtrees("./data_source/forest_example.dat");
 
 	}
 
