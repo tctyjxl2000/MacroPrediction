@@ -3,7 +3,9 @@ package wekaTest;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import weka.core.converters.CSVLoader;
 import weka.core.Attribute;
@@ -28,6 +30,7 @@ import weka.core.EuclideanDistance;
 import weka.clusterers.ClusterEvaluation;
 import weka.attributeSelection.GainRatioAttributeEval;
 import weka.attributeSelection.Ranker;
+
 
 
 
@@ -589,11 +592,11 @@ public class MacroBurstPred {
 	public double[] gridSearch_RF_FSelected(int folds) throws Exception {
 		String file_result = "./data_source/result_grid_search_FS.dat";
 		this.type = "Feature_Selected";
-		double[] ClusterSize = { 0.01, 0.005};         // We keep the name here just to simplify the modification
-		int[] TreeNumber = {300};//{200,250,300,350};
-		int[] FeatureNumber = {23};//{15,20,25,30};
-		int[] DepthNumber = {5};//{4,5,6,7};
-		double[] FilterCombination = { 0, 0.2, 0.4};
+		double[] ClusterSize = { 0.005};//,0.0025};         // We keep the name here just to simplify the modification
+		int[] TreeNumber = {3};//{200,250,300,350};
+		int[] FeatureNumber = {400};//{15,20,25,30};
+		int[] DepthNumber = {10};//{4,5,6,7};
+		double[] FilterCombination = {0.1,0.5, 0.9};//, 0.2, 0.3};
 		double[][] result_collection = new double[ClusterSize.length*TreeNumber.length*FeatureNumber.length*DepthNumber.length*FilterCombination.length][19];
 		for (int cluster_index = 0; cluster_index<ClusterSize.length; cluster_index++){
 			double numClusters = ClusterSize[cluster_index];
@@ -800,7 +803,7 @@ public class MacroBurstPred {
 	public void test_RF_FSelected(int folds) throws Exception{
 		String file_name = "./data_source/result_test.dat";
 		double[][] result = new double[folds][19];
-		for (int ii = 0; ii<folds; ii++){
+		for (int ii = 1; ii<2; ii++){
 			FileWriter fw = new FileWriter(file_name, true);
 			this.data_nominal = this.data_full.trainCV(folds, ii);
 			this.data_test = this.data_full.testCV(folds,ii);
@@ -814,6 +817,7 @@ public class MacroBurstPred {
 				this.data_test.deleteAttributeAt(time_att.index());
 			}
 			double[] config = this.gridSearch_RF_FSelected(folds-1);  // One fold data for test, all the others for training and verification
+//			double[] config = {200,23, 6, 0.1, 0.005};  // Just for test 
 			fw.write(String.format("batch %d\n",ii));
 			fw.write(Arrays.toString(config)+"\n");
 			Instances train = this.data_nominal;
@@ -853,6 +857,7 @@ public class MacroBurstPred {
 			me.setInputFormat(train);
 			train = Filter.useFilter(train, me);
 			test = Filter.useFilter(test, me);
+			Map <String, Integer> attNameIndex = this.featureNameIndex(test);
 
 			//boolean resample = ((int)config[3]%2 == 1);
 			//boolean reweight = ((int)config[3]/2==1);			
@@ -861,18 +866,20 @@ public class MacroBurstPred {
 			// NOTE!!!! If the resample or reweight flag is modified, keep in mind to modify similar flags in function gridSearch_RF(), too.
 			this.setResampleRatio(config[3]); // Set the resampling ratio to the selected value. 
 			double[] result_fold = this.one_pass_RF(train, test, reweight, resample);
+//			double[] result_fold= new double[24];  // Just for test
 			
 			String file_name_classifier = "./data_source/forest_example.dat";
 			FileWriter fw_rf = new FileWriter(file_name_classifier,false);
 			fw_rf.write(this.classifier.toString());
-			fw_rf.close();
+			fw_rf.close();			
 			RandomForestTrack rft= new RandomForestTrack();
 			rft.loadtrees("./data_source/forest_example.dat");
-//			rft.genReason(test);
 			
 			if (time_att!=null){
 				String file_name_instresult = "./data_source/instance_result.dat";
-				FileWriter fw_ir = new FileWriter(file_name_instresult,false);
+				FileWriter fw_ir = new FileWriter(file_name_instresult,true);
+				String file_name_instreason = "./data_source/instance_reason.dat";
+				FileWriter fw_ic = new FileWriter(file_name_instreason,false);
 	//			String index_of_time = test.attribute(test.numAttributes()-2).name();
 	//			System.out.println(index_of_time);
 	//			Attribute time_instant_att = test.attribute("投诉时点");
@@ -884,10 +891,18 @@ public class MacroBurstPred {
 					String out = String.format("actual: %d, predicted: %d, time: %s\n", actual, predict, time_instant);
 					
 					fw_ir.write(out);
+					fw_ic.write(out);
+					String[] reasons = rft.genReason(inst, attNameIndex);
+					for (int kk = 0; kk < reasons.length; kk++){
+						if (reasons[kk]!=null){
+							fw_ic.write(String.format("Tree %d: %s\n", kk+1, reasons[kk]));
+						}
+					}
 				}
 			
 	//			fw_ir.write(this.classifier.toString());
 				fw_ir.close();
+				fw_ic.close();
 			}
 			
 			
@@ -925,10 +940,20 @@ public class MacroBurstPred {
 		fw.close();
 	}
 	
+	public Map <String, Integer> featureNameIndex(Instances  for_prediction){
+		Map <String, Integer>  ml = new HashMap<String, Integer> ();
+		for (int ii = 0; ii < for_prediction.numAttributes(); ii++){
+			Attribute att = for_prediction.attribute(ii);
+			String att_name = att.name();
+			ml.put(att_name, ii);
+		}
+		return ml;
+	}
+	
 	public static void main(String[] args) throws Exception {
 		MacroBurstPred mbp = new MacroBurstPred();
 		mbp.dataLoad();
-		mbp.test_RF_FSelected(10);
+		mbp.test_RF_FSelected(6);
 		
 //		mbp.train_RF_clustered(5, 5, 23, 250, true, true);
 //		mbp.gridSearch();

@@ -19,6 +19,14 @@ public class TextTree {
 		if (root == null){
 			root = new TreeNode(feature_self, thre_self,  judge_self);
 			size++;
+			if (judge_self!=-1){
+				TreeNode leaf_result = new TreeNode("NULL", 0, judge_self);
+				if(root.leftChild==null)
+					root.leftChild = leaf_result;
+				else
+					root.rightChild = leaf_result;
+				leaf_result.parentNode = root;
+			}
 		}
 		else{
 			if (judge_self==-1){  // No decision result, not a leaf node
@@ -84,16 +92,25 @@ public class TextTree {
 	public String getReason(Instance instance, Map map){
 		TreeNode p = root;
 		String output = "";
-		while(p.feature_name!="NULL"){
-			double inst_value = instance.value((int) map.get(p.feature_name));
-			if(inst_value < p.threshold){
-				output = output.concat(p.feature_name.concat(String.format("< %1.3f,",p.threshold/100000)));
-				p = p.leftChild;
+//		System.out.println(root.feature_name);
+		try{
+			while(p.feature_name!="NULL"){
+				if (root.feature_name == "RRU组网级数与配置不一致告警_1")
+					System.out.println(p.feature_name);
+				double inst_value = instance.value((int) map.get(p.feature_name));
+				if(inst_value < p.threshold){
+					output = output.concat(p.feature_name.concat(String.format("%1.3f < %1.3f,",inst_value/100000, p.threshold/100000)));
+					p = p.leftChild;
+				}
+				else{
+					output = output.concat(p.feature_name.concat(String.format("%1.3f >= %1.3f,",inst_value/100000, p.threshold/100000)));
+					p = p.rightChild;
+				}
 			}
-			else{
-				output = output.concat(p.feature_name.concat(String.format(">= %1.3f,",p.threshold/100000)));
-				p = p.rightChild;
-			}
+		} catch (NullPointerException e){
+			System.out.println(root.feature_name);
+			System.out.println(output);
+			System.out.println(p!=null);
 		}
 		output = output.concat(String.format("%d", p.type));
 		return output;

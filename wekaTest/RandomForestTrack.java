@@ -25,6 +25,8 @@ public class RandomForestTrack {
 				feature_name = new String[20];
 				thre = new double[20];
 				tree_index++;
+				if (tree_index == 15)
+					System.out.println(tree_index);
 				TextTree tmpTree = new TextTree();
 				int class_type = -1;
 				
@@ -79,37 +81,36 @@ public class RandomForestTrack {
 		}
 	}
 	
-	public void genReason(Instances for_prediction){
-		Map ml = new HashMap();
+	public String[] genReason(Instance instance, Map<String, Integer> ml){
 		String[] reasons = new String[Trees.length];
-		for (int ii = 0; ii < for_prediction.numAttributes(); ii++){
-			Attribute att = for_prediction.attribute(ii);
-			String att_name = att.name();
-			ml.put(att_name, ii);
-		}
-		Instance instance = for_prediction.get(0);
 		for(int ii = 0; ii<Trees.length; ii++){
 			TextTree tree = Trees[ii];
-			if (tree.root!=null)
+			if (tree!=null)
+				try{
 				reasons[ii] = tree.getReason(instance, ml);
+				}catch (NullPointerException e){
+					System.out.println(String.format("Problem met at the %d-th tree", ii));
+				}
 		}
 		Map <String, Integer> cause_set_p = new HashMap <String, Integer> ();
 		Map <String, ArrayList> cause_range_p = new HashMap <String, ArrayList> ();
 		Map <String, Integer> cause_set_n = new HashMap <String, Integer> ();
 		Map <String, ArrayList> cause_range_n = new HashMap <String, ArrayList> ();
 		for (int ii = 0;ii < reasons.length; ii++){
-			if (!reasons[ii].isEmpty()){
+			if (reasons[ii]!=null){
 				String[] causes = reasons[ii].split(",");
-				if (causes[causes.length-1].equals("1")){
-					for (int jj = 0; jj < causes.length; jj++){
-						String[] feature = Pattern.compile("\\ < |\\ >=").split(causes[jj]);
+				if (causes[causes.length-1].equals("1")){  // If this is a positive instance
+					for (int jj = 0; jj < causes.length-1; jj++){
+						String[] feature = Pattern.compile("\\ < |\\ >=").split(causes[jj]);  // feature[0], name of the feature; feature[1], threshold of the feature
+						if (feature.length<2)
+							System.out.println(causes[jj]);
 						if (cause_set_p.containsKey(feature[0])){
 							cause_set_p.replace(feature[0], cause_set_p.get(feature[0])+1);
 							ArrayList <String> tmp_list = cause_range_p.get(feature[0]);
 							tmp_list.add(feature[1]);
 							cause_range_p.replace(feature[0], tmp_list);
 						}
-						else{
+						else{   
 							cause_set_p.put(feature[0], 1);
 							ArrayList <String> tmp_list = new ArrayList <String> ();
 							tmp_list.add(feature[1]);
@@ -117,8 +118,8 @@ public class RandomForestTrack {
 						}
 					}
 				}
-				else{
-					for (int jj = 0; jj < causes.length; jj++){
+				else{  // If this is a negative instance
+					for (int jj = 0; jj < causes.length-1; jj++){
 						String[] feature = Pattern.compile("\\ < |\\ >=").split(causes[jj]);
 						if (cause_set_n.containsKey(feature[0])){
 							cause_set_n.replace(feature[0], cause_set_n.get(feature[0])+1);
@@ -129,14 +130,16 @@ public class RandomForestTrack {
 						else{
 							cause_set_n.put(feature[0], 1);
 							ArrayList <String> tmp_list = new ArrayList <String> ();
-							tmp_list.add(feature[1]);;
+							tmp_list.add(feature[1]);
 							cause_range_n.put(feature[0], tmp_list);
 						}
 					}
 				}
 			}
+		else
+			break;
 		}
-		
+		return reasons;
 	}
 
 	public static void main(String[] args) throws Exception {
