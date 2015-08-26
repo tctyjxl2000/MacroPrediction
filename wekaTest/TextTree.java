@@ -30,27 +30,95 @@ public class TextTree {
 		}
 		else{
 			if (judge_self==-1){  // No decision result, not a leaf node
-				TreeNode node_exist = this.noRecPostOrder(feature_self, thre_self);  // Check if the node already exists
-				if (node_exist == null){   // If the node does not exist, create a new one. Else do nothing
-					TreeNode node = this.noRecPostOrder(feature_parent, thre_parent);
-					TreeNode tmp_node = new TreeNode(feature_self, thre_self, judge_self);
-					if (node.leftChild==null)
-						node.leftChild = tmp_node;
-					else
-						node.rightChild = tmp_node;
-					tmp_node.parentNode = node;
-				}
-			}
-			else{ // Decision result provided. Shall attach leaf node to the parent decision node
-				TreeNode node_exist = this.noRecPostOrder(feature_self, thre_self);
-				if (node_exist == null){   // If the node does not exist, create a new one.
-					TreeNode node = this.noRecPostOrder(feature_parent, thre_parent);
-					node_exist = new TreeNode(feature_self, thre_self, -1);
+				TreeNode node_exist = new TreeNode();
+//				TreeNode node = this.noRecPostOrder(feature_parent, thre_parent);
+				ArrayList <TreeNode> nodes_exist = this.noRecPostOrder(feature_self, thre_self);  // Check if the node already exists. May return many ones who share the same feature name and threshold
+				ArrayList <TreeNode> nodes_parent = this.noRecPostOrder(feature_parent, thre_parent);  // Check if the parent node already exists. May return many ones who share the same feature name and threshold
+				if (nodes_exist == null){   // If no nodes is returned, of course it does not exist. Create a new one.				
+					node_exist = new TreeNode(feature_self, thre_self, judge_self);
+					TreeNode node = new TreeNode();
+					for (int kk = 0; kk < nodes_parent.size(); kk++){ // Here we find the actual parent node, since many nodes may be returned.
+						node = nodes_parent.get(kk);
+						if (node.leftChild == null || node.rightChild == null)  // The parent node shall have one child empty
+							break;
+					}
 					if (node.leftChild==null)
 						node.leftChild = node_exist;
 					else
 						node.rightChild = node_exist;
 					node_exist.parentNode = node;
+				}
+				else{ // If node is returned, we have to consider the possibility that more than one is returned. 
+					// The one with both child nodes filled shall be the wrong one. If all of them does not match, we also have to create a new node.
+					boolean exist = false;
+					for(int kk = 0; kk<nodes_exist.size(); kk++){
+						node_exist = nodes_exist.get(kk);
+						if (node_exist.leftChild != null && node_exist.rightChild!= null)
+							continue;
+						else{
+							exist = true;  // Got a node with at least child node empty. Shall be the one we are looking for. And do nothing! :)
+							break;}
+					}
+					if (!exist){ // If the flag is still false, it means the returned list does not include the one we are looking for. create a new one
+						node_exist = new TreeNode(feature_self, thre_self, judge_self);
+						TreeNode node = new TreeNode();
+						for (int kk = 0; kk < nodes_parent.size(); kk++){
+							node = nodes_parent.get(kk);
+							if (node.leftChild == null || node.rightChild == null)
+								break;
+						}
+						if (node.leftChild==null)
+							node.leftChild = node_exist;
+						else
+							node.rightChild = node_exist;
+						node_exist.parentNode = node;
+					}
+				}
+			}
+			else{ // Decision result provided. Shall attach leaf node to the parent decision node
+				TreeNode node_exist = new TreeNode();
+//				TreeNode node = this.noRecPostOrder(feature_parent, thre_parent);
+				ArrayList <TreeNode> nodes_exist = this.noRecPostOrder(feature_self, thre_self);  // Check if the node already exists. May return many ones who share the same feature name and threshold
+				ArrayList <TreeNode> nodes_parent = this.noRecPostOrder(feature_parent, thre_parent);  // Check if the parent node already exists. May return many ones who share the same feature name and threshold
+				if (nodes_exist == null){   // If no nodes is returned, of course it does not exist. Create a new one.				
+					node_exist = new TreeNode(feature_self, thre_self, judge_self);
+					TreeNode node = new TreeNode();
+					for (int kk = 0; kk < nodes_parent.size(); kk++){ // Here we find the actual parent node, since many nodes may be returned.
+						node = nodes_parent.get(kk);
+						if (node.leftChild == null || node.rightChild == null)  // The parent node shall have one child empty
+							break;
+					}
+					if (node.leftChild==null)
+						node.leftChild = node_exist;
+					else
+						node.rightChild = node_exist;
+					node_exist.parentNode = node;
+				}
+				else{ // If node is returned, we have to consider the possibility that more than one is returned. 
+					// The one with both child nodes filled shall be the wrong one. If all of them does not match, we also have to create a new node.
+					boolean exist = false;
+					for(int kk = 0; kk<nodes_exist.size(); kk++){
+						node_exist = nodes_exist.get(kk);
+						if (node_exist.leftChild != null && node_exist.rightChild!= null)
+							continue;
+						else{
+							exist = true;  // Got a node with at least child node empty. Shall be the one we are looking for. And do nothing! :)
+							break;}
+					}
+					if (!exist){ // If the flag is still false, it means the returned list does not include the one we are looking for. create a new one
+						node_exist = new TreeNode(feature_self, thre_self, judge_self);
+						TreeNode node = new TreeNode();
+						for (int kk = 0; kk < nodes_parent.size(); kk++){
+							node = nodes_parent.get(kk);
+							if (node.leftChild == null || node.rightChild == null)
+								break;
+						}
+						if (node.leftChild==null)
+							node.leftChild = node_exist;
+						else
+							node.rightChild = node_exist;
+						node_exist.parentNode = node;
+					}
 				}
  				TreeNode leaf_result = new TreeNode("NULL", 0, judge_self);
 				if(node_exist.leftChild==null)
@@ -64,8 +132,9 @@ public class TextTree {
 		return true;
 	}
 	
-	public TreeNode noRecPostOrder(String a, double b){
+	public ArrayList <TreeNode> noRecPostOrder(String a, double b){
 		Stack<TreeNode> stack = new Stack<TreeNode>();
+		ArrayList <TreeNode> nodes_found = new ArrayList();
 		TreeNode p = root;
 		TreeNode node = p;
 		while (p!=null){
@@ -77,16 +146,19 @@ public class TextTree {
 //				if(stack.empty())
 //					return node;
 				if (p.feature_name.equals(a) && p.threshold == b)
-					return p;
+					nodes_found.add(p);
 				if (stack.empty())
-					return null;
+					if (nodes_found.isEmpty())
+						return null;
+					else
+						return nodes_found;
 				p = stack.pop();
 			}
 			stack.push(p);
 			p= p.rightChild;
 		}
-		System.out.println("The node matching the input feature and threshold does no exist");
-		return null;
+//		System.out.println("The node matching the input feature and threshold does no exist");
+		return nodes_found;
 	}
 	
 	public String getReason(Instance instance, Map map){
@@ -99,11 +171,11 @@ public class TextTree {
 					System.out.println(p.feature_name);
 				double inst_value = instance.value((int) map.get(p.feature_name));
 				if(inst_value < p.threshold){
-					output = output.concat(p.feature_name.concat(String.format("%1.3f < %1.3f,",inst_value/100000, p.threshold/100000)));
+					output = output.concat(p.feature_name.concat(String.format(" %1.3f < %1.3f,", inst_value, p.threshold/10000)));
 					p = p.leftChild;
 				}
 				else{
-					output = output.concat(p.feature_name.concat(String.format("%1.3f >= %1.3f,",inst_value/100000, p.threshold/100000)));
+					output = output.concat(p.feature_name.concat(String.format(" %1.3f >= %1.3f,", inst_value, p.threshold/10000)));
 					p = p.rightChild;
 				}
 			}
