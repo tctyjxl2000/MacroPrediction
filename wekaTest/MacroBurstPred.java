@@ -37,6 +37,7 @@ import weka.attributeSelection.Ranker;
 
 
 
+
 //import org.apache.commons.math3.stat.*;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 
@@ -61,7 +62,7 @@ public class MacroBurstPred {
 	}
 	
 	public void dataLoad() throws Exception{
-		String data_file_name = "./data_source/training_set_thre=19_randomized(J-M).csv";
+		String data_file_name = "./data_source/training_set_成都_2G互联网_有信号但无法使用_thre=13_randomized_periodic_1hour.csv";
 		//String data_file_name = "./data_source/test.csv";
 //		String data_file_name = "./data_source/training_set_CS_coverage_thre=8_randomized.csv";
 		CSVLoader loader = new CSVLoader();
@@ -593,10 +594,10 @@ public class MacroBurstPred {
 		String file_result = "./data_source/result_grid_search_FS.dat";
 		this.type = "Feature_Selected";
 		double[] ClusterSize = { 0.005};//,0.0025};         // We keep the name here just to simplify the modification
-		int[] TreeNumber = {3};//{200,250,300,350};
-		int[] FeatureNumber = {400};//{15,20,25,30};
-		int[] DepthNumber = {10};//{4,5,6,7};
-		double[] FilterCombination = {0.1,0.5, 0.9};//, 0.2, 0.3};
+		int[] TreeNumber = {200};//{200,250,300,350};
+		int[] FeatureNumber = {23};//{15,20,25,30};
+		int[] DepthNumber = {5,6};//{4,5,6,7};
+		double[] FilterCombination = { 0.5, 0.9,1.0};//, 0.2, 0.3};
 		double[][] result_collection = new double[ClusterSize.length*TreeNumber.length*FeatureNumber.length*DepthNumber.length*FilterCombination.length][19];
 		for (int cluster_index = 0; cluster_index<ClusterSize.length; cluster_index++){
 			double numClusters = ClusterSize[cluster_index];
@@ -655,11 +656,12 @@ public class MacroBurstPred {
 			}
 		}
 //		int target_index = 9;  // F Measure of the minor class is set as the target value
-		int target_index = 7; // Precision of the minority class is selected as the objective metric		
+		int target_index = 8; // Precision of the minority class is selected as the objective metric		
 		double max = 0;
+		double recall_thre = 0.5;
 		int max_index = 0;
 		for (int ii = 0; ii < result_collection.length; ii++){
-			if (result_collection[ii][target_index]>max){ 
+			if (result_collection[ii][target_index]>max){ // && result_collection[ii][target_index+1]>=recall_thre){ 
 				max =result_collection[ii][target_index];
 				max_index = ii;
 			}
@@ -803,7 +805,7 @@ public class MacroBurstPred {
 	public void test_RF_FSelected(int folds) throws Exception{
 		String file_name = "./data_source/result_test.dat";
 		double[][] result = new double[folds][19];
-		for (int ii = 1; ii<2; ii++){
+		for (int ii = 0; ii<folds; ii++){
 			FileWriter fw = new FileWriter(file_name, true);
 			this.data_nominal = this.data_full.trainCV(folds, ii);
 			this.data_test = this.data_full.testCV(folds,ii);
@@ -853,7 +855,7 @@ public class MacroBurstPred {
 			// for loading into data structure in RandomForestTrack. Therefore we multiply each feature by 1000. This does not impact the classifier.
 			MathExpression me = new MathExpression();
 			me.setIgnoreRange(String.valueOf(train.classIndex()));
-			me.setExpression("A*100000");
+			me.setExpression("A*100");
 			me.setInputFormat(train);
 			train = Filter.useFilter(train, me);
 			test = Filter.useFilter(test, me);
@@ -873,7 +875,7 @@ public class MacroBurstPred {
 			fw_rf.write(this.classifier.toString());
 			fw_rf.close();			
 			RandomForestTrack rft= new RandomForestTrack();
-			rft.loadtrees("./data_source/forest_example.dat");
+//			rft.loadtrees("./data_source/forest_example.dat");
 			
 			if (time_att!=null){
 				String file_name_instresult = "./data_source/instance_result.dat";
@@ -892,12 +894,12 @@ public class MacroBurstPred {
 					
 					fw_ir.write(out);
 					fw_ic.write(out);
-					String[] reasons = rft.genReason(inst, attNameIndex);
-					for (int kk = 0; kk < reasons.length; kk++){
-						if (reasons[kk]!=null){
-							fw_ic.write(String.format("Tree %d: %s\n", kk+1, reasons[kk]));
-						}
-					}
+//					String[] reasons = rft.genReason(inst, attNameIndex);
+//					for (int kk = 0; kk < reasons.length; kk++){
+//						if (reasons[kk]!=null){
+//							fw_ic.write(String.format("Tree %d: %s\n", kk+1, reasons[kk]));
+//						}
+//					}
 				}
 			
 	//			fw_ir.write(this.classifier.toString());
@@ -950,10 +952,132 @@ public class MacroBurstPred {
 		return ml;
 	}
 	
+	public Instances loadTestSet(String data_file_name) throws Exception{
+//		String data_file_name = "./data_source/training_set_达州_2G互联网_有信号但无法使用_thre=5_randomized.csv";
+		//String data_file_name = "./data_source/test.csv";
+//		String data_file_name = "./data_source/training_set_CS_coverage_thre=8_randomized.csv";
+		CSVLoader loader = new CSVLoader();
+		loader.setSource(new File(data_file_name));
+		Instances data_raw = loader.getDataSet();
+		String[] opt_filter_nominal = new String[2];
+		opt_filter_nominal[0] = "-R";
+//		opt_filter_nominal[1] = "last";
+		opt_filter_nominal[1] = String.valueOf(data_raw.attribute("突发投诉").index()+1); // Note: Here the index shall be the real one plus 1, since in the input format, index starts from 1 instead of 0
+		NumericToNominal num2nom = new NumericToNominal();
+		num2nom.setOptions(opt_filter_nominal);
+		num2nom.setInputFormat(data_raw);
+		Instances data_nominal = Filter.useFilter(data_raw, num2nom);
+		return data_nominal;
+	}
+	
+	public void overallModelTesting(int folds, String testsetname) throws Exception{
+		String file_name = "./data_source/result_test_July.dat";
+		double[] result = new double[19];
+		FileWriter fw = new FileWriter(file_name, true);
+		this.data_nominal = this.data_full;
+		Instances data_test = this.loadTestSet(testsetname);
+		Attribute time_att = this.data_full.attribute("具体时刻");
+		Instances data_test_original = new Instances(data_test);
+		if (time_att != null){
+			this.data_nominal.deleteAttributeAt(time_att.index());
+			data_test.deleteAttributeAt(time_att.index());
+		}
+		double[] config = this.gridSearch_RF_FSelected(folds);  // One fold data for test, all the others for training and verification
+//			double[] config = {200,23, 6, 0.1, 0.005};  // Just for test 
+		fw.write(Arrays.toString(config)+"\n");
+		Instances train = this.data_nominal;
+		Instances test = data_test;
+		train.setClassIndex(train.attribute("突发投诉").index());
+		test.setClassIndex(test.attribute("突发投诉").index());
+		
+		AttributeSelection as = new AttributeSelection();
+		GainRatioAttributeEval grae = new GainRatioAttributeEval();
+		Ranker ranker = new Ranker();
+		if (config[4] <= 1) {ranker.setThreshold(config[4]);}
+		else {ranker.setNumToSelect((int)config[4]);}
+		as.setEvaluator(grae);
+		as.setSearch(ranker);
+		
+		Normalize normalizer = new Normalize();
+		normalizer.setIgnoreClass(true);
+		normalizer.setInputFormat(train);
+		Instances train_tmp = Filter.useFilter(train, normalizer);
+		as.SelectAttributes(train_tmp);
+		
+		int[] att_index = as.selectedAttributes();
+		System.out.println("Selected feature length is " + att_index.length);
+		Remove rm = new Remove();
+		rm.setAttributeIndicesArray(att_index);
+		rm.setInvertSelection(true);
+		rm.setInputFormat(train);
+		train = Filter.useFilter(train, rm);
+		System.out.println("The number of attributes for selected training set is" + train.numAttributes());
+		test = Filter.useFilter(test, rm);			
+		
+		// The following part is for the generation of text forest, on which the threshold for some feature (call drop ratio, etc) may be too small
+		// for loading into data structure in RandomForestTrack. Therefore we multiply each feature by 1000. This does not impact the classifier.
+		MathExpression me = new MathExpression();
+		me.setIgnoreRange(String.valueOf(train.classIndex()));
+		me.setExpression("A*100");
+		me.setInputFormat(train);
+		train = Filter.useFilter(train, me);
+		test = Filter.useFilter(test, me);
+		Map <String, Integer> attNameIndex = this.featureNameIndex(test);
+
+		//boolean resample = ((int)config[3]%2 == 1);
+		//boolean reweight = ((int)config[3]/2==1);			
+		boolean resample = true;
+		boolean reweight = false; 
+		// NOTE!!!! If the resample or reweight flag is modified, keep in mind to modify similar flags in function gridSearch_RF(), too.
+		this.setResampleRatio(config[3]); // Set the resampling ratio to the selected value. 
+		double[] result_fold = this.one_pass_RF(train, test, reweight, resample);
+//			double[] result_fold= new double[24];  // Just for test
+		
+		String file_name_classifier = "./data_source/forest_example.dat";
+		FileWriter fw_rf = new FileWriter(file_name_classifier,false);
+		fw_rf.write(this.classifier.toString());
+		fw_rf.close();			
+		RandomForestTrack rft= new RandomForestTrack();
+//		rft.loadtrees("./data_source/forest_example.dat");
+		
+		if (time_att!=null){
+			String file_name_instresult = "./data_source/instance_result.dat";
+			FileWriter fw_ir = new FileWriter(file_name_instresult,false);
+			String file_name_instreason = "./data_source/instance_reason.dat";
+			FileWriter fw_ic = new FileWriter(file_name_instreason,false);
+//			String index_of_time = test.attribute(test.numAttributes()-2).name();
+//			System.out.println(index_of_time);
+//			Attribute time_instant_att = test.attribute("投诉时点");
+			for (int jj = 0; jj < test.numInstances(); jj++){
+				Instance inst = test.instance(jj);
+				int actual = (int)inst.classValue();
+				int predict = (int) this.classifier.classifyInstance(inst);
+				String time_instant = data_test_original.get(jj).stringValue(time_att.index());
+				String out = String.format("actual: %d, predicted: %d, time: %s\n", actual, predict, time_instant);
+				
+				fw_ir.write(out);
+				fw_ic.write(out);
+//				String[] reasons = rft.genReason(inst, attNameIndex);
+//				for (int kk = 0; kk < reasons.length; kk++){
+//					if (reasons[kk]!=null){
+//						fw_ic.write(String.format("Tree %d: %s\n", kk+1, reasons[kk]));
+//					}
+//				}
+			}
+		
+//			fw_ir.write(this.classifier.toString());
+			fw_ir.close();
+			fw_ic.close();
+		}		
+		fw.write(Arrays.toString(result_fold)+"\n");
+		fw.close();
+	}
+	
 	public static void main(String[] args) throws Exception {
 		MacroBurstPred mbp = new MacroBurstPred();
 		mbp.dataLoad();
 		mbp.test_RF_FSelected(6);
+//		mbp.overallModelTesting(5, "./data_source/testing_set_成都_2G互联网_有信号但无法使用_thre=13_randomized_periodic_1hour.csv");
 		
 //		mbp.train_RF_clustered(5, 5, 23, 250, true, true);
 //		mbp.gridSearch();

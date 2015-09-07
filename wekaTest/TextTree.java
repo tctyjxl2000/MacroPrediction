@@ -171,11 +171,11 @@ public class TextTree {
 					System.out.println(p.feature_name);
 				double inst_value = instance.value((int) map.get(p.feature_name));
 				if(inst_value < p.threshold){
-					output = output.concat(p.feature_name.concat(String.format(" %1.3f < %1.3f,", inst_value, p.threshold/10000)));
+					output = output.concat(p.feature_name.concat(String.format(" %1.3f < %1.3f,", inst_value/100, p.threshold/100)));
 					p = p.leftChild;
 				}
 				else{
-					output = output.concat(p.feature_name.concat(String.format(" %1.3f >= %1.3f,", inst_value, p.threshold/10000)));
+					output = output.concat(p.feature_name.concat(String.format(" %1.3f >= %1.3f,", inst_value/100, p.threshold/100)));
 					p = p.rightChild;
 				}
 			}
